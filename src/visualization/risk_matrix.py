@@ -22,12 +22,25 @@ class RiskMatrix:
         else:
             return 4  # very high
     
+    def _map_probability_to_level(self, probability: float) -> int:
+        """Mappt Wahrscheinlichkeits-Werte auf Matrix-Level (0-4)"""
+        if probability <= 5:
+            return 0  # very low
+        elif probability <= 10:
+            return 1  # low
+        elif probability <= 50:
+            return 2  # medium
+        elif probability <= 75:
+            return 3  # high
+        else:
+            return 4  # very high
+    
     def _group_risks_by_position(self, risks: List[Risk], project_budget: float) -> Dict[Tuple[int, int], List[str]]:
         """Gruppiert Risiken nach ihrer Position in der Matrix"""
         positions = defaultdict(list)
         for risk in risks:
             impact_level = self._map_impact_to_level(risk.impact, project_budget)
-            prob_level = int(min(risk.probability / 20, 4.99))
+            prob_level = self._map_probability_to_level(risk.probability)
             positions[(impact_level, prob_level)].append(risk.name)
         return positions
     
