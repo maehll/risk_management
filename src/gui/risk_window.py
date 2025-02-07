@@ -174,26 +174,9 @@ class RiskManagementApp:
     
     def show_power_matrix(self):
         """Zeigt die Risiko-Matrix an"""
-        # Dialog für Titel
-        dialog = tk.Toplevel(self.root)
-        dialog.title("Matrix Titel")
-        dialog.geometry("300x100")
-        dialog.transient(self.root)
-        dialog.grab_set()
-        
-        ttk.Label(dialog, text="Titel für die Matrix:").pack(pady=5)
-        title_var = tk.StringVar(value="Risiko Matrix")
-        entry = ttk.Entry(dialog, textvariable=title_var, width=40)
-        entry.pack(pady=5)
-        
-        def create_matrix():
-            title = title_var.get()
-            risks = self.risk_manager.get_all_risks()
-            project_budget = self.risk_manager.get_project_budget()
-            dialog.destroy()
-            self.risk_matrix.create_matrix(risks, project_budget, title=title)
-        
-        ttk.Button(dialog, text="OK", command=create_matrix).pack(pady=5)
+        risks = self.risk_manager.get_all_risks()
+        project_budget = self.risk_manager.get_project_budget()
+        self.risk_matrix.create_matrix(risks, project_budget, title="Risiko Matrix")
 
     def add_risk(self):
         """Fügt ein neues Risiko hinzu"""
