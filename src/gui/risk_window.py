@@ -1,8 +1,9 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 from datetime import datetime
 from src.services.risk_manager import RiskManager
 from src.visualization.risk_matrix import RiskMatrix
+import json
 
 class RiskManagementApp:
     def __init__(self, root):
@@ -60,6 +61,8 @@ class RiskManagementApp:
         file_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Datei", menu=file_menu)
         file_menu.add_command(label="Projektbudget ändern", command=self.change_project_budget)
+        file_menu.add_command(label="Speichern", command=self.save_data)
+        file_menu.add_command(label="Laden", command=self.load_data)
         file_menu.add_separator()
         file_menu.add_command(label="Beenden", command=self.root.quit)
         
@@ -250,12 +253,93 @@ class RiskManagementApp:
         ttk.Label(details_window, text=f"Risk-Level: {risk.risk_level}").pack(pady=5)
     
     def save_data(self):
-        # Implementierung folgt
-        pass
-        
+        """Speichert alle Risiken in eine JSON-Datei mit Dateiauswahl"""
+        try:
+            # Dateiauswahl-Dialog öffnen
+            filepath = filedialog.asksaveasfilename(
+                defaultextension=".json",
+                filetypes=[("JSON Dateien", "*.json"), ("Alle Dateien", "*.*")],
+                title="Risiken speichern unter"
+            )
+            
+            if not filepath:  # Wenn Benutzer abbricht
+                return
+            
+            risks_data = []
+            for risk in self.risk_manager.risks.values():
+                risks_data.append({
+                    'id': risk.id,
+                    'name': risk.name,
+                    'description': risk.description,
+                    'probability': risk.probability,
+                    'impact': risk.impact,
+                    'reporting_level': risk.reporting_level,
+                    'risk_type': risk.risk_type
+                })
+            
+            data = {
+                'project_budget': self.risk_manager.get_project_budget(),
+                'risks': risks_data
+            }
+            
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
+                
+            messagebox.showinfo("Erfolg", "Daten wurden erfolgreich gespeichert")
+        except Exception as e:
+            messagebox.showerror("Fehler", f"Fehler beim Speichern: {str(e)}")
+
     def load_data(self):
-        # Implementierung folgt
-        pass
+        """Lädt Risiken aus einer JSON-Datei mit Dateiauswahl"""
+        try:
+            # Dateiauswahl-Dialog öffnen
+            filepath = filedialog.askopenfilename(
+                filetypes=[("JSON Dateien", "*.json"), ("Alle Dateien", "*.*")],
+                title="Risiken laden"
+            )
+            
+            if not filepath:  # Wenn Benutzer abbricht
+                return
+            
+            with open(filepath, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                
+            # Projektbudget setzen
+            self.risk_manager.set_project_budget(data['project_budget'])
+            
+            # Bestehende Risiken löschen
+            self.risk_manager.risks.clear()
+            for item in self.tree.get_children():
+                self.tree.delete(item)
+            
+            # Neue Risiken laden
+            for risk_data in data['risks']:
+                risk = self.risk_manager.add_risk(
+                    name=risk_data['name'],
+                    description=risk_data['description'],
+                    probability=risk_data['probability'],
+                    impact=risk_data['impact'],
+                    reporting_level=risk_data['reporting_level'],
+                    risk_type=risk_data['risk_type']
+                )
+                
+                # Risiko zur Tabelle hinzufügen
+                self.tree.insert('', 'end', values=(
+                    risk.id,
+                    risk.name,
+                    risk.description,
+                    f"{risk.probability:.1f}",
+                    f"{risk.impact:.2f}",
+                    risk.reporting_level,
+                    risk.risk_type,
+                    risk.risk_level
+                ))
+            
+            messagebox.showinfo("Erfolg", "Daten wurden erfolgreich geladen")
+        except FileNotFoundError:
+            messagebox.showwarning("Warnung", "Datei nicht gefunden")
+        except Exception as e:
+            messagebox.showerror("Fehler", f"Fehler beim Laden: {str(e)}")
 
     def on_risk_select(self, event):
         try:
