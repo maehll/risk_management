@@ -41,7 +41,7 @@ class RiskMatrix:
         for risk in risks:
             impact_level = self._map_impact_to_level(risk.impact, project_budget)
             prob_level = self._map_probability_to_level(risk.probability)
-            positions[(impact_level, prob_level)].append(risk.name)
+            positions[(impact_level, prob_level)].append(f"R-{risk.id}")  # Statt risk.name nun R-{risk.id}
         return positions
     
     def _truncate_text(self, text: str, max_chars: int = 20) -> str:
@@ -105,20 +105,20 @@ class RiskMatrix:
         positions = self._group_risks_by_position(risks, project_budget)
         
         # Risiken platzieren
-        for (impact_level, prob_level), risk_names in positions.items():
-            num_risks = len(risk_names)
+        for (impact_level, prob_level), risk_ids in positions.items():
+            num_risks = len(risk_ids)
             # Berechne gleichmäßige Abstände innerhalb des Quadranten
             spacing = 0.8 / max(num_risks, 1)  # 0.8 um etwas Rand zu lassen
             
-            for idx, name in enumerate(risk_names):
+            for idx, risk_id in enumerate(risk_ids):
                 # Berechne y-Position mit Offset
                 y_pos = prob_level + 0.1 + (idx * spacing)
                 
-                # Text kürzen, wenn er zu lang ist
-                truncated_name = self._truncate_text(name)
-                
-                ax.text(impact_level + 0.05, y_pos, truncated_name, 
-                       va='center', ha='left', fontsize=8)
+                # Text-Box mit weißem Text auf rotem Grund erstellen
+                ax.text(impact_level + 0.05, y_pos, risk_id,
+                       va='center', ha='left', fontsize=8,
+                       color='white',  # Weiße Schrift
+                       bbox=dict(facecolor='red', edgecolor='none', pad=2))  # Roter Hintergrund
         
         # Layout optimieren
         plt.tight_layout()

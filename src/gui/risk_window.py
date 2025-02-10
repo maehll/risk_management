@@ -214,7 +214,7 @@ class RiskManagementApp:
             
             # Aktualisiere Tabelle
             self.tree.insert('', 'end', values=(
-                risk.id,
+                f"R-{risk.id}",  # Prefix "R-" hinzugefügt
                 risk.name,
                 risk.description,
                 f"{risk.probability:.1f}",
@@ -327,11 +327,11 @@ class RiskManagementApp:
                 )
                 
                 # Erwartungswert berechnen
-                expected_value = (risk.probability * risk.impact) / 100  # Wahrscheinlichkeit ist in Prozent
+                expected_value = (risk.probability * risk.impact) / 100
                 
                 # Risiko zur Tabelle hinzufügen
                 self.tree.insert('', 'end', values=(
-                    risk.id,
+                    f"R-{risk.id}",  # Prefix "R-" hinzugefügt
                     risk.name,
                     risk.description,
                     f"{risk.probability:.1f}",
@@ -351,7 +351,7 @@ class RiskManagementApp:
     def on_risk_select(self, event):
         try:
             selected_item = self.tree.selection()[0]
-            risk_id = int(self.tree.item(selected_item)['values'][0])
+            risk_id = int(self.tree.item(selected_item)['values'][0].replace('R-', ''))
             risk = self.risk_manager.get_risk(risk_id)
             if risk:
                 self.show_risk_details(risk)
@@ -368,7 +368,7 @@ class RiskManagementApp:
             return
             
         item = selection[0]
-        risk_id = int(self.tree.item(item)['values'][0])
+        risk_id = int(self.tree.item(item)['values'][0].replace('R-', ''))  # "R-" Prefix entfernen
         risk = self.risk_manager.risks[risk_id]
         
         # Dialog erstellen
@@ -446,7 +446,7 @@ class RiskManagementApp:
                 
                 # Treeview aktualisieren
                 self.tree.item(item, values=(
-                    risk.id,
+                    f"R-{risk.id}",  # Prefix "R-" hinzugefügt
                     risk.name,
                     risk.description,
                     f"{risk.probability:.1f}",
@@ -500,25 +500,54 @@ class RiskManagementApp:
 
     def sort_treeview(self, col):
         """Sortiert die Treeview-Spalte auf- oder absteigend"""
-        # Aktuelle Einträge holen
         items = [(self.tree.set(item, col), item) for item in self.tree.get_children('')]
         
-        # Sortierrichtung umkehren, wenn die gleiche Spalte nochmal geklickt wird
         if hasattr(self, '_last_sort_col') and self._last_sort_col == col:
             items.reverse()
             self._last_sort_col = None
         else:
-            # Numerische Sortierung für bestimmte Spalten
-            if col in ["ID", "Wahrscheinlichkeit", "Auswirkung", "Erwartungswert"]:
+            if col == "ID":  # Spezielle Behandlung für ID-Spalte mit "R-" Prefix
+                items.sort(key=lambda x: int(x[0].replace('R-', '')))
+            elif col in ["Wahrscheinlichkeit", "Auswirkung", "Erwartungswert"]:
                 items.sort(key=lambda x: float(x[0]) if x[0] else 0)
             else:
-                # Alphabetische Sortierung für Text-Spalten
                 items.sort(key=lambda x: x[0].lower())
             self._last_sort_col = col
         
-        # Neu sortierte Items einfügen
         for index, (val, item) in enumerate(items):
             self.tree.move(item, '', index)
+
+    def update_power_matrix(self):
+        """Aktualisiert die Power-Matrix"""
+        # Matrix leeren
+        for widget in self.matrix_frame.winfo_children():
+            widget.destroy()
+        
+        # Matrix neu aufbauen
+        for i in range(11):
+            for j in range(11):
+                cell = tk.Frame(self.matrix_frame, width=40, height=40, 
+                              bg=self.get_cell_color(10-i, j))
+                cell.grid(row=i, column=j)
+                cell.grid_propagate(False)
+                
+                # Risiken für diese Zelle finden
+                risks_in_cell = []
+                for item in self.tree.get_children():
+                    values = self.tree.item(item)['values']
+                    prob = float(values[3])  # Wahrscheinlichkeit
+                    impact = float(values[4])  # Auswirkung
+                    
+                    # Prüfen ob Risiko in diese Zelle gehört
+                    if (prob // 10 == j and impact // 10 == 10-i):
+                        risks_in_cell.append(f"R-{values[0]}")  # ID mit "R-" Präfix
+                
+                # Risiko-IDs in der Zelle anzeigen
+                if risks_in_cell:
+                    label = tk.Label(cell, text="\n".join(risks_in_cell),
+                                   bg='red', fg='white',  # Weiße Schrift auf rotem Grund
+                                   font=('Arial', 8))
+                    label.place(relx=0.5, rely=0.5, anchor='center')
 
 def main():
     root = tk.Tk()
