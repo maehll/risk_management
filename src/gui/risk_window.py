@@ -135,8 +135,12 @@ class RiskManagementApp:
         
         # Treeview für Risiken
         columns = ("ID", "Name", "Beschreibung", "Wahrscheinlichkeit", "Auswirkung", 
-                  "Reporting Level", "Risiko-Typ", "Risiko-Level")
+                  "Erwartungswert", "Reporting Level", "Risiko-Typ", "Risiko-Level")
         self.tree = ttk.Treeview(list_frame, columns=columns, show="headings")
+        
+        # Spaltenüberschriften und Sortierungsfunktion hinzufügen
+        for col in columns:
+            self.tree.heading(col, text=col, command=lambda c=col: self.sort_treeview(c))
         
         # Scrollbars
         vsb = ttk.Scrollbar(list_frame, orient="vertical", command=self.tree.yview)
@@ -147,11 +151,6 @@ class RiskManagementApp:
         self.tree.grid(row=0, column=0, sticky="nsew")
         vsb.grid(row=0, column=1, sticky="ns")
         hsb.grid(row=1, column=0, sticky="ew")
-        
-        # Spaltenüberschriften
-        for col in columns:
-            self.tree.heading(col, text=col)
-            self.tree.column(col, minwidth=100, width=120)
         
         # Kontextmenü für Treeview
         context_menu = tk.Menu(self.root, tearoff=0)
@@ -210,6 +209,9 @@ class RiskManagementApp:
                 risk_type=risk_type
             )
             
+            # Erwartungswert berechnen
+            expected_value = (probability * impact) / 100  # Wahrscheinlichkeit ist in Prozent
+            
             # Aktualisiere Tabelle
             self.tree.insert('', 'end', values=(
                 risk.id,
@@ -217,6 +219,7 @@ class RiskManagementApp:
                 risk.description,
                 f"{risk.probability:.1f}",
                 f"{risk.impact:.2f}",
+                f"{expected_value:.2f}",
                 risk.reporting_level,
                 risk.risk_type,
                 risk.risk_level
@@ -323,6 +326,9 @@ class RiskManagementApp:
                     risk_type=risk_data['risk_type']
                 )
                 
+                # Erwartungswert berechnen
+                expected_value = (risk.probability * risk.impact) / 100  # Wahrscheinlichkeit ist in Prozent
+                
                 # Risiko zur Tabelle hinzufügen
                 self.tree.insert('', 'end', values=(
                     risk.id,
@@ -330,6 +336,7 @@ class RiskManagementApp:
                     risk.description,
                     f"{risk.probability:.1f}",
                     f"{risk.impact:.2f}",
+                    f"{expected_value:.2f}",
                     risk.reporting_level,
                     risk.risk_type,
                     risk.risk_level
@@ -434,6 +441,9 @@ class RiskManagementApp:
                 risk.risk_type = risk_type
                 risk._risk_level = risk._calculate_risk_level()
                 
+                # Erwartungswert berechnen
+                expected_value = (probability * impact) / 100  # Wahrscheinlichkeit ist in Prozent
+                
                 # Treeview aktualisieren
                 self.tree.item(item, values=(
                     risk.id,
@@ -441,6 +451,7 @@ class RiskManagementApp:
                     risk.description,
                     f"{risk.probability:.1f}",
                     f"{risk.impact:.2f}",
+                    f"{expected_value:.2f}",
                     risk.reporting_level,
                     risk.risk_type,
                     risk.risk_level
@@ -486,6 +497,28 @@ class RiskManagementApp:
                 messagebox.showerror("Fehler", str(e))
         
         ttk.Button(dialog, text="Aktualisieren", command=update_budget).pack(pady=10)
+
+    def sort_treeview(self, col):
+        """Sortiert die Treeview-Spalte auf- oder absteigend"""
+        # Aktuelle Einträge holen
+        items = [(self.tree.set(item, col), item) for item in self.tree.get_children('')]
+        
+        # Sortierrichtung umkehren, wenn die gleiche Spalte nochmal geklickt wird
+        if hasattr(self, '_last_sort_col') and self._last_sort_col == col:
+            items.reverse()
+            self._last_sort_col = None
+        else:
+            # Numerische Sortierung für bestimmte Spalten
+            if col in ["ID", "Wahrscheinlichkeit", "Auswirkung", "Erwartungswert"]:
+                items.sort(key=lambda x: float(x[0]) if x[0] else 0)
+            else:
+                # Alphabetische Sortierung für Text-Spalten
+                items.sort(key=lambda x: x[0].lower())
+            self._last_sort_col = col
+        
+        # Neu sortierte Items einfügen
+        for index, (val, item) in enumerate(items):
+            self.tree.move(item, '', index)
 
 def main():
     root = tk.Tk()
