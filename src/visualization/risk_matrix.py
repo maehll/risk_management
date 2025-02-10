@@ -51,8 +51,10 @@ class RiskMatrix:
         return text[:max_chars-3] + "..."
             
     def create_matrix(self, risks: List[Risk], project_budget: float, title: str = "Risiko Matrix", save_path: str = None):
-        # Figure und Axes erstellen
-        fig, ax = plt.subplots(figsize=(10, 10))
+        """Erstellt die Power-Matrix"""
+        # Figure mit quadratischem Aspektverhältnis erstellen
+        fig = plt.figure(figsize=(10, 10))  # Quadratische Grundgröße
+        ax = fig.add_subplot(111, aspect='equal')  # Erzwingt quadratisches Verhältnis
         
         # Titel setzen
         plt.title(title, pad=20, fontsize=14, fontweight='bold')
@@ -107,21 +109,54 @@ class RiskMatrix:
         # Risiken platzieren
         for (impact_level, prob_level), risk_ids in positions.items():
             num_risks = len(risk_ids)
-            # Berechne gleichmäßige Abstände innerhalb des Quadranten
-            spacing = 0.8 / max(num_risks, 1)  # 0.8 um etwas Rand zu lassen
+            
+            # Berechne maximale Anzahl von Risiken pro Zeile
+            max_risks_per_row = min(3, num_risks)  # Maximal 3 Risiken nebeneinander
+            num_rows = (num_risks + max_risks_per_row - 1) // max_risks_per_row
+            
+            # Berechne Schriftgröße basierend auf verfügbarem Platz
+            # Ein Quadrant ist 1x1 Einheiten groß
+            base_fontsize = 12  # Basis-Schriftgröße
+            fontsize = min(
+                base_fontsize / num_rows,  # Vertikale Anpassung
+                base_fontsize / max_risks_per_row  # Horizontale Anpassung
+            )
+            fontsize = max(8, min(28, fontsize))  # Begrenzen zwischen 6 und 14
             
             for idx, risk_id in enumerate(risk_ids):
-                # Berechne y-Position mit Offset
-                y_pos = prob_level + 0.1 + (idx * spacing)
+                # Berechne Position in Reihen und Spalten
+                row = idx // max_risks_per_row
+                col = idx % max_risks_per_row
                 
-                # Text-Box mit weißem Text auf rotem Grund erstellen
-                ax.text(impact_level + 0.05, y_pos, risk_id,
-                       va='center', ha='left', fontsize=8,
-                       color='white',  # Weiße Schrift
-                       bbox=dict(facecolor='red', edgecolor='none', pad=2))  # Roter Hintergrund
+                # Berechne x und y Position mit Offset
+                x_offset = col * (0.8 / max_risks_per_row)  # Horizontaler Abstand
+                y_offset = row * (0.8 / num_rows)  # Vertikaler Abstand
+                
+                x_pos = impact_level + 0.1 + x_offset
+                y_pos = prob_level + 0.1 + y_offset
+                
+                # Text-Box mit weißem Text auf rotem Grund und schwarzem Rahmen erstellen
+                ax.text(x_pos, y_pos, risk_id,
+                       va='center', ha='left',
+                       fontsize=fontsize,
+                       color='white',
+                       bbox=dict(
+                           facecolor='red',
+                           edgecolor='black',  # Schwarzer Rahmen
+                           linewidth=1,        # Rahmendicke
+                           pad=2,              # Innenabstand
+                           boxstyle='round,pad=0.3'  # Abgerundete Ecken
+                       ))
         
-        # Layout optimieren
-        plt.tight_layout()
+        # Layout optimieren und Quadrat erzwingen
+        plt.subplots_adjust(left=0.1, right=0.9, bottom=0.1, top=0.9)
         
-        # Plot anzeigen
-        plt.show() 
+        if save_path:
+            # Speichern mit festgelegter DPI für konsistente Größe
+            plt.savefig(save_path, bbox_inches='tight', dpi=300)
+            plt.close()
+        else:
+            # Anzeigen mit erzwungenem quadratischem Layout
+            plt.show(block=True)
+        
+        return fig, ax 
