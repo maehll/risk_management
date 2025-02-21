@@ -121,7 +121,7 @@ class RiskMatrix:
                 base_fontsize / num_rows,  # Vertikale Anpassung
                 base_fontsize / max_risks_per_row  # Horizontale Anpassung
             )
-            fontsize = max(8, min(28, fontsize))  # Begrenzen zwischen 6 und 14
+            fontsize = max(12, min(28, fontsize))  # Begrenzen zwischen 6 und 14
             
             for idx, risk_id in enumerate(risk_ids):
                 # Berechne Position in Reihen und Spalten
