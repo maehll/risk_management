@@ -5,10 +5,11 @@ from src.services.risk_manager import RiskManager
 from src.visualization.risk_matrix import RiskMatrix
 import json
 
-class RiskManagementApp:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Risiko Management System")
+class RiskManagementApp(tk.Frame):
+    def __init__(self, master):
+        super().__init__(master)
+        self.master = master
+        self.master.title("Risikomanagement")
         self.risk_manager = RiskManager()
         self.risk_matrix = RiskMatrix()
         
@@ -20,7 +21,7 @@ class RiskManagementApp:
         self.get_project_budget()
         
         # Hauptfenster-Konfiguration
-        self.root.geometry("1000x600")
+        self.master.geometry("1000x600")
         
         # GUI-Elemente erstellen
         self.create_menu()
@@ -28,10 +29,10 @@ class RiskManagementApp:
         
     def get_project_budget(self):
         """Fragt das Projektbudget beim Start ab"""
-        dialog = tk.Toplevel(self.root)
+        dialog = tk.Toplevel(self.master)
         dialog.title("Projektbudget")
         dialog.geometry("300x100")
-        dialog.transient(self.root)
+        dialog.transient(self.master)
         dialog.grab_set()
         
         ttk.Label(dialog, text="Bitte geben Sie das Projektbudget (Mio. €) ein:").pack(pady=5)
@@ -50,12 +51,12 @@ class RiskManagementApp:
                 messagebox.showerror("Fehler", str(e))
         
         ttk.Button(dialog, text="OK", command=set_budget).pack(pady=5)
-        self.root.wait_window(dialog)
+        self.master.wait_window(dialog)
         
     def create_menu(self):
         """Erstellt das Menü"""
-        menubar = tk.Menu(self.root)
-        self.root.config(menu=menubar)
+        menubar = tk.Menu(self.master)
+        self.master.config(menu=menubar)
         
         # Datei-Menü
         file_menu = tk.Menu(menubar, tearoff=0)
@@ -64,7 +65,7 @@ class RiskManagementApp:
         file_menu.add_command(label="Speichern", command=self.save_data)
         file_menu.add_command(label="Laden", command=self.load_data)
         file_menu.add_separator()
-        file_menu.add_command(label="Beenden", command=self.root.quit)
+        file_menu.add_command(label="Beenden", command=self.master.quit)
         
         # Bearbeiten-Menü
         edit_menu = tk.Menu(menubar, tearoff=0)
@@ -82,12 +83,12 @@ class RiskManagementApp:
         self.create_matrix_button()
         
         # Grid-Konfiguration
-        self.root.grid_rowconfigure(1, weight=1)
-        self.root.grid_columnconfigure(0, weight=1)
+        self.master.grid_rowconfigure(1, weight=1)
+        self.master.grid_columnconfigure(0, weight=1)
         
     def create_input_form(self):
         """Erstellt das Eingabeformular"""
-        input_frame = ttk.LabelFrame(self.root, text="Neues Risiko", padding="10")
+        input_frame = ttk.LabelFrame(self.master, text="Neues Risiko", padding="10")
         input_frame.grid(row=0, column=0, padx=10, pady=5, sticky="nsew")
         
         # Eingabefelder
@@ -130,7 +131,7 @@ class RiskManagementApp:
         
     def create_risk_list(self):
         """Erstellt die Risiko-Liste mit Kontextmenü"""
-        list_frame = ttk.Frame(self.root)
+        list_frame = ttk.Frame(self.master)
         list_frame.grid(row=1, column=0, padx=10, pady=5, sticky="nsew")
         
         # Treeview für Risiken
@@ -153,9 +154,11 @@ class RiskManagementApp:
         hsb.grid(row=1, column=0, sticky="ew")
         
         # Kontextmenü für Treeview
-        context_menu = tk.Menu(self.root, tearoff=0)
+        context_menu = tk.Menu(self.master, tearoff=0)
         context_menu.add_command(label="Bearbeiten", 
                                command=lambda: self.edit_risk(None))
+        context_menu.add_command(label="Löschen",  # Neue Menüoption
+                               command=self.delete_selected_risk)
         
         def show_context_menu(event):
             if self.tree.selection():  # Nur wenn ein Item ausgewählt ist
@@ -171,7 +174,7 @@ class RiskManagementApp:
         
     def create_matrix_button(self):
         """Erstellt den Matrix-Button"""
-        ttk.Button(self.root, text="Powermatrix anzeigen", 
+        ttk.Button(self.master, text="Powermatrix anzeigen", 
                   command=self.show_power_matrix).grid(row=2, column=0, pady=10)
     
     def show_power_matrix(self):
@@ -240,7 +243,7 @@ class RiskManagementApp:
                 entry.delete(0, tk.END)  # Für normale Eingabefelder
     
     def show_risk_details(self, risk):
-        details_window = tk.Toplevel(self.root)
+        details_window = tk.Toplevel(self.master)
         details_window.title(f"Details: {risk.name}")
         details_window.geometry("400x300")
         
@@ -372,10 +375,10 @@ class RiskManagementApp:
         risk = self.risk_manager.risks[risk_id]
         
         # Dialog erstellen
-        dialog = tk.Toplevel(self.root)
+        dialog = tk.Toplevel(self.master)
         dialog.title(f"Risiko {risk_id} bearbeiten")
         dialog.geometry("500x400")
-        dialog.transient(self.root)
+        dialog.transient(self.master)
         dialog.grab_set()
         
         # Eingabefelder
@@ -470,10 +473,10 @@ class RiskManagementApp:
 
     def change_project_budget(self):
         """Öffnet Dialog zum Ändern des Projektbudgets"""
-        dialog = tk.Toplevel(self.root)
+        dialog = tk.Toplevel(self.master)
         dialog.title("Projektbudget ändern")
         dialog.geometry("300x120")
-        dialog.transient(self.root)
+        dialog.transient(self.master)
         dialog.grab_set()
         
         # Aktuelles Budget anzeigen
@@ -548,6 +551,54 @@ class RiskManagementApp:
                                    bg='red', fg='white',  # Weiße Schrift auf rotem Grund
                                    font=('Arial', 8))
                     label.place(relx=0.5, rely=0.5, anchor='center')
+
+    def create_risk_list_frame(self):
+        list_frame = ttk.Frame(self)
+        
+        # Erstelle Scrollbare Liste
+        self.risk_listbox = tk.Listbox(list_frame, width=50)
+        scrollbar = ttk.Scrollbar(list_frame, orient="vertical", command=self.risk_listbox.yview)
+        self.risk_listbox.configure(yscrollcommand=scrollbar.set)
+        
+        # Lösch-Button
+        delete_button = ttk.Button(
+            list_frame, 
+            text="Ausgewähltes Risiko löschen",
+            command=self.delete_selected_risk
+        )
+        
+        # Layout
+        self.risk_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        delete_button.pack(side=tk.BOTTOM, pady=5)
+        
+        return list_frame
+
+    def delete_selected_risk(self):
+        """Löscht das ausgewählte Risiko"""
+        selection = self.tree.selection()
+        if not selection:
+            return
+            
+        try:
+            item = selection[0]
+            risk_id = int(self.tree.item(item)['values'][0].replace('R-', ''))
+            
+            # Risiko aus dem RiskManager löschen
+            self.risk_manager.risks.pop(risk_id, None)
+            
+            # Eintrag aus der Treeview entfernen
+            self.tree.delete(item)
+            
+        except Exception as e:
+            messagebox.showerror("Fehler", f"Fehler beim Löschen: {str(e)}")
+
+    def update_risk_list(self):
+        self.risk_listbox.delete(0, tk.END)  # Liste leeren
+        self.displayed_risks = self.risk_manager.get_all_risks()
+        
+        for risk in self.displayed_risks:
+            self.risk_listbox.insert(tk.END, f"{risk.name} - {risk.description[:50]}...")
 
 def main():
     root = tk.Tk()
